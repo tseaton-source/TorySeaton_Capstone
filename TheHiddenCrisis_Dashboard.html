@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Hidden Crisis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0d1b2a; --navy2: #1a2e45; --navy3: #243b55;
+    --gold: #e9c46a; --gold2: #f4a261; --red: #e63946;
+    --teal: #2ec4b6; --white: #ffffff; --grey: #a8b2c1; --lightgrey: #d1d9e0;
+  }
+  body { background: var(--navy); color: var(--white); font-family: 'Segoe UI', system-ui, sans-serif; height: 100vh; overflow: hidden; }
+  .topbar { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: var(--navy); border-bottom: 1px solid var(--navy3); padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar-title { font-size: 13px; font-weight: 600; color: var(--gold); letter-spacing: 1px; text-transform: uppercase; }
+  .topbar-author { font-size: 12px; color: var(--grey); }
+  .progress-bar { display: flex; gap: 6px; align-items: center; }
+  .prog-dot { width: 28px; height: 4px; border-radius: 2px; background: var(--navy3); cursor: pointer; transition: background 0.3s; }
+  .prog-dot.active { background: var(--gold); }
+  .prog-dot.done { background: var(--navy3); opacity: 0.6; }
+  .prog-label { font-size: 11px; color: var(--grey); margin-left: 8px; }
+  .pages { position: fixed; top: 56px; left: 0; right: 0; bottom: 64px; overflow: hidden; }
+  .page { position: absolute; top: 0; left: 0; right: 0; bottom: 0; padding: 28px 48px 20px; overflow-y: auto; opacity: 0; transform: translateX(60px); transition: all 0.45s cubic-bezier(0.4,0,0.2,1); pointer-events: none; }
+  .page.active { opacity: 1; transform: translateX(0); pointer-events: all; }
+  .page.exit-left { opacity: 0; transform: translateX(-60px); }
+  .landing { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; height: 100%; }
+  .landing-eyebrow { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 20px; }
+  .landing-title { font-size: 46px; font-weight: 700; line-height: 1.15; margin-bottom: 16px; max-width: 700px; }
+  .landing-title span { color: var(--gold); }
+  .landing-sub { font-size: 15px; color: var(--grey); max-width: 560px; line-height: 1.7; margin-bottom: 32px; }
+  .begin-btn { background: var(--gold); color: var(--navy); padding: 14px 40px; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; letter-spacing: 1px; text-transform: uppercase; transition: all 0.2s; margin-top: 8px; }
+  .begin-btn:hover { background: var(--gold2); transform: translateY(-2px); }
+  .ds-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 28px; }
+  .ds-pill { background: var(--navy3); border: 1px solid #2e4a66; padding: 6px 14px; border-radius: 20px; font-size: 11px; color: var(--grey); }
+  .ds-pill strong { color: var(--gold); }
+  .chapter-eyebrow { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+  .chapter-title { font-size: 28px; font-weight: 700; line-height: 1.2; margin-bottom: 6px; }
+  .chapter-sub { font-size: 13px; color: var(--grey); line-height: 1.6; margin-bottom: 16px; max-width: 720px; }
+  /* YEAR FILTER BAR */
+  .year-filter-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .year-filter-label { font-size: 11px; color: var(--grey); text-transform: uppercase; letter-spacing: 1px; margin-right: 4px; }
+  .yr-btn { background: var(--navy3); border: 1px solid #2e4a66; color: var(--grey); padding: 5px 16px; border-radius: 20px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+  .yr-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .yr-btn.active { background: var(--gold); color: var(--navy); border-color: var(--gold); font-weight: 700; }
+  .stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+  .stat-card { background: var(--navy2); border-radius: 12px; padding: 18px; border-top: 3px solid var(--gold); }
+  .stat-card.red { border-top-color: var(--red); }
+  .stat-card.teal { border-top-color: var(--teal); }
+  .stat-card.gold2 { border-top-color: var(--gold2); }
+  .stat-number { font-size: 32px; font-weight: 700; color: var(--gold); line-height: 1; margin-bottom: 6px; }
+  .stat-card.red .stat-number { color: var(--red); }
+  .stat-card.teal .stat-number { color: var(--teal); }
+  .stat-card.gold2 .stat-number { color: var(--gold2); }
+  .stat-label { font-size: 11px; color: var(--grey); line-height: 1.4; }
+  .chart-box { background: var(--navy2); border-radius: 12px; padding: 20px; margin-bottom: 12px; }
+  .chart-box-title { font-size: 12px; font-weight: 600; color: var(--lightgrey); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 1px; }
+  .chart-wrap { position: relative; }
+  .chart-wrap.h280 { height: 280px; }
+  .chart-wrap.h240 { height: 240px; }
+  .chart-wrap.h300 { height: 300px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .gender-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .gender-col { background: var(--navy2); border-radius: 12px; padding: 18px; }
+  .gender-head { font-size: 13px; font-weight: 700; margin-bottom: 14px; text-align: center; padding: 7px; border-radius: 6px; }
+  .gender-head.male { background: rgba(52,152,219,0.2); color: #5dade2; }
+  .gender-head.female { background: rgba(233,76,140,0.2); color: #f06292; }
+  .g-metric { margin-bottom: 12px; }
+  .g-metric-label { font-size: 10px; color: var(--grey); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .g-bar-track { background: var(--navy3); border-radius: 4px; height: 24px; overflow: hidden; }
+  .g-bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 10px; font-size: 11px; font-weight: 700; color: var(--navy); transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+  .g-bar-fill.male { background: linear-gradient(90deg,#3498db,#5dade2); }
+  .g-bar-fill.female { background: linear-gradient(90deg,#e91e8c,#f06292); }
+  .insight-box { background: rgba(233,196,106,0.08); border-left: 3px solid var(--gold); padding: 11px 14px; border-radius: 0 8px 8px 0; margin-top: 12px; font-size: 12px; color: var(--gold); line-height: 1.5; font-style: italic; }
+  .caveat-box { background: rgba(230,57,70,0.07); border-left: 3px solid var(--red); padding: 11px 14px; border-radius: 0 8px 8px 0; margin-bottom: 10px; font-size: 12px; color: #f08080; line-height: 1.6; }
+  .info-box { background: rgba(46,196,182,0.07); border-left: 3px solid var(--teal); padding: 11px 14px; border-radius: 0 8px 8px 0; margin-top: 10px; font-size: 12px; color: #7ee8e2; line-height: 1.6; }
+  .source { font-size: 10px; color: #4a5a6a; margin-top: 6px; }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 64px; background: var(--navy); border-top: 1px solid var(--navy3); display: flex; align-items: center; justify-content: space-between; padding: 0 48px; }
+  .nav-btn { background: var(--navy2); border: 1px solid var(--navy3); color: var(--white); padding: 10px 28px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .nav-btn:hover { background: var(--navy3); border-color: var(--gold); color: var(--gold); }
+  .nav-btn.primary { background: var(--gold); color: var(--navy); border-color: var(--gold); }
+  .nav-btn.primary:hover { background: var(--gold2); }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .nav-chapter-label { font-size: 11px; color: var(--grey); text-align: center; }
+  .nav-chapter-name { font-size: 13px; font-weight: 600; color: var(--white); }
+  .toggle-btns { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .toggle-btn { padding: 5px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 1px solid; transition: opacity 0.2s; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">The Hidden Crisis</div>
+  <div class="progress-bar" id="progressBar">
+    <div class="prog-dot active" onclick="goTo(0)"></div>
+    <div class="prog-dot" onclick="goTo(1)"></div>
+    <div class="prog-dot" onclick="goTo(2)"></div>
+    <div class="prog-dot" onclick="goTo(3)"></div>
+    <div class="prog-dot" onclick="goTo(4)"></div>
+    <div class="prog-dot" onclick="goTo(5)"></div>
+    <div class="prog-dot" onclick="goTo(6)"></div>
+    <div class="prog-dot" onclick="goTo(7)"></div>
+    <div class="prog-dot" onclick="goTo(8)"></div>
+    <span class="prog-label" id="progLabel">Intro</span>
+  </div>
+  <div class="topbar-author">Tory Seaton</div>
+</div>
+
+<div class="pages">
+
+  <!-- PAGE 0: LANDING -->
+  <div class="page active" id="page-0">
+    <div class="landing">
+      <div class="landing-eyebrow">Capstone Project</div>
+      <h1 class="landing-title">The <span>Hidden Crisis</span>:<br>Substance Use & Mental Health<br>in America</h1>
+      <p class="landing-sub">An interactive data story exploring how substance abuse and mental health intersect across age, gender, and race — and what the data reveals about who gets help and who gets left behind.</p>
+      <div style="margin-bottom:28px;text-align:center;">
+        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:12px;">Data Sources</div>
+        <div class="ds-grid">
+          <div class="ds-pill"><strong>NSDUH 2021–2024</strong> &nbsp;·&nbsp; 232,441 respondents</div>
+          <div class="ds-pill"><strong>TEDS-D 2021</strong> &nbsp;·&nbsp; 1.35M treatment episodes</div>
+          <div class="ds-pill"><strong>TEDS-D 2022</strong> &nbsp;·&nbsp; 1.39M treatment episodes</div>
+          <div class="ds-pill"><strong>TEDS-D 2023</strong> &nbsp;·&nbsp; 1.47M treatment episodes</div>
+        </div>
+        <div style="font-size:10px;color:#4a5a6a;margin-top:6px;">All datasets collected and published by the Substance Abuse and Mental Health Services Administration (SAMHSA) · U.S. Dept. of Health & Human Services</div>
+      </div>
+      <button class="begin-btn" onclick="nextPage()">Begin the Story →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 1: THE SCALE -->
+  <div class="page" id="page-1">
+    <div class="chapter-eyebrow">Chapter 1 of 4</div>
+    <h2 class="chapter-title">The Scale of the Crisis</h2>
+    <p class="chapter-sub">Tens of millions of Americans struggle with substance use and mental health disorders annually — yet the majority never receive treatment. Use the year filter to track how these numbers have shifted over time.</p>
+    <div class="year-filter-bar">
+      <span class="year-filter-label">Filter by year:</span>
+      <button class="yr-btn active" onclick="setYear(1,'all',this)">All Years</button>
+      <button class="yr-btn" onclick="setYear(1,'2021',this)">2021</button>
+      <button class="yr-btn" onclick="setYear(1,'2022',this)">2022</button>
+      <button class="yr-btn" onclick="setYear(1,'2023',this)">2023</button>
+      <button class="yr-btn" onclick="setYear(1,'2024',this)">2024</button>
+    </div>
+    <div class="stat-cards">
+      <div class="stat-card"><div class="stat-number" id="cnt1">0%</div><div class="stat-label">Used alcohol in the past 30 days</div></div>
+      <div class="stat-card gold2"><div class="stat-number" id="cnt2">0%</div><div class="stat-label">Used marijuana in the past 30 days</div></div>
+      <div class="stat-card red"><div class="stat-number" id="cnt3">0%</div><div class="stat-label">Diagnosed with depression (past year)</div></div>
+      <div class="stat-card teal"><div class="stat-number" id="cnt4">0%</div><div class="stat-label">Received mental health treatment</div></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-box-title">Substance Use Rates — Past 30 Days</div>
+      <div class="chart-wrap h280"><canvas id="scaleChart"></canvas></div>
+    </div>
+    <div class="caveat-box"><strong style="display:block;margin-bottom:3px;">⚠ Self-reported data likely underestimates true prevalence.</strong>Because respondents self-report substance use, stigma, fear of legal consequences, and social desirability bias systematically suppress reported rates. Independent epidemiological research and treatment admission data consistently indicate that actual prevalence exceeds survey-based estimates. The TEDS dataset records over 4.2 million treatment admissions across 2021–2023 alone — a figure that underscores the gap between what is reported and what is real.</div>
+    <div class="source">Source: NSDUH 2021–2024, SAMHSA · N=232,441 · Supporting: TEDS-D 2021–2023, SAMHSA · N=4,219,911</div>
+  </div>
+
+  <!-- PAGE 2: AGE -->
+  <div class="page" id="page-2">
+    <div class="chapter-eyebrow">Chapter 2 of 4</div>
+    <h2 class="chapter-title">Young Adults Are the Eye of the Storm</h2>
+    <p class="chapter-sub">Substance use and depression converge at exactly the same life stage. Americans aged 21–25 face the highest rates of both — a critical window for early intervention. Filter by year to see how trends shift.</p>
+    <div class="year-filter-bar">
+      <span class="year-filter-label">Filter by year:</span>
+      <button class="yr-btn active" onclick="setYear(2,'all',this)">All Years</button>
+      <button class="yr-btn" onclick="setYear(2,'2021',this)">2021</button>
+      <button class="yr-btn" onclick="setYear(2,'2022',this)">2022</button>
+      <button class="yr-btn" onclick="setYear(2,'2023',this)">2023</button>
+      <button class="yr-btn" onclick="setYear(2,'2024',this)">2024</button>
+    </div>
+    <div class="chart-box">
+      <div class="chart-box-title">Substance Use & Depression Rates by Age Group</div>
+      <div class="toggle-btns">
+        <button class="toggle-btn" onclick="toggleLine(this,0)" style="background:rgba(233,196,106,0.2);border-color:#e9c46a;color:#e9c46a;">Alcohol</button>
+        <button class="toggle-btn" onclick="toggleLine(this,1)" style="background:rgba(46,196,182,0.2);border-color:#2ec4b6;color:#2ec4b6;">Marijuana</button>
+        <button class="toggle-btn" onclick="toggleLine(this,2)" style="background:rgba(244,162,97,0.2);border-color:#f4a261;color:#f4a261;">Cigarettes</button>
+        <button class="toggle-btn" onclick="toggleLine(this,3)" style="background:rgba(230,57,70,0.2);border-color:#e63946;color:#e63946;">Nicotine Vaping</button>
+        <button class="toggle-btn" onclick="toggleLine(this,4)" style="background:rgba(155,89,182,0.2);border-color:#9b59b6;color:#9b59b6;">Depression</button>
+      </div>
+      <div class="chart-wrap h300"><canvas id="ageChart"></canvas></div>
+    </div>
+    <div class="insight-box">"At ages 21–25, over 58% report alcohol use, 26% marijuana use, and 26.7% nicotine vaping — the same window where depression rates peak at 17%. Notably, vaping spikes sharply in youth and young adults while cigarette use peaks later in life (35–49), revealing a generational shift in how nicotine is consumed."</div>
+    <div style="background:rgba(155,89,182,0.08);border-left:3px solid #9b59b6;padding:11px 14px;border-radius:0 8px 8px 0;margin-top:10px;font-size:12px;color:#bb8fce;line-height:1.6;">
+      <strong style="display:block;margin-bottom:3px;">What about cocaine, heroin, and fentanyl?</strong>
+      Cocaine, heroin, and fentanyl each account for less than 1% of reported use across all age groups. While low in self-reported rates, these substances carry disproportionate health risk and are not evenly distributed across the lifespan in ways that would be visible on this chart. These substances are covered in detail in Chapter 1, where the self-reporting caveat also explains why actual prevalence is likely higher than what this data captures.
+    </div>
+    <div class="source">Source: NSDUH 2021–2024, SAMHSA · N=232,441</div>
+  </div>
+
+  <!-- PAGE 3: GENDER -->
+  <div class="page" id="page-3">
+    <div class="chapter-eyebrow">Chapter 3 of 4</div>
+    <h2 class="chapter-title">Men Use More. Women Ask for Help More.</h2>
+    <p class="chapter-sub">Men and women experience this crisis differently. Despite comparable alcohol use rates, women are nearly twice as likely to seek mental health treatment — while men continue to suffer in silence.</p>
+    <div class="year-filter-bar">
+      <span class="year-filter-label">Filter by year:</span>
+      <button class="yr-btn active" onclick="setYear(3,'all',this)">All Years</button>
+      <button class="yr-btn" onclick="setYear(3,'2022',this)">2022</button>
+      <button class="yr-btn" onclick="setYear(3,'2023',this)">2023</button>
+    </div>
+    <div class="gender-grid" id="genderGrid">
+      <div class="gender-col">
+        <div class="gender-head male">Male</div>
+        <div class="g-metric"><div class="g-metric-label">Alcohol use (past 30 days)</div><div class="g-bar-track"><div class="g-bar-fill male" id="m-alc" style="width:0%">-</div></div></div>
+        <div class="g-metric"><div class="g-metric-label">Marijuana use (past 30 days)</div><div class="g-bar-track"><div class="g-bar-fill male" id="m-mj" style="width:0%">-</div></div></div>
+        <div class="g-metric"><div class="g-metric-label">Depression (past year)</div><div class="g-bar-track"><div class="g-bar-fill male" id="m-dep" style="width:0%">-</div></div></div>
+        <div class="g-metric"><div class="g-metric-label">Cigarette use (past 30 days)</div><div class="g-bar-track"><div class="g-bar-fill male" id="m-cig" style="width:0%">-</div></div></div>
+        <div class="g-metric"><div class="g-metric-label">Nicotine vaping (past 30 days)</div><div class="g-bar-track"><div class="g-bar-fill male" id="m-vap" style="width:0%">-</div></div></div>
+        <div class="g-metric"><div class="g-metric-label">Sought mental health treatment</div><div class="g-bar-track"><div class="g-bar-fill male" id="m-mht" style="width:0%">-</div></div></div>
+      </div>
+      <div class="gender-col">
+        <div class="gender-head female">Female</div>
+        <div class="g-metric"><div class="g-metric-label">Alcohol use (past 30 days)</div><div class="g-bar-track"><div class="g-bar-fill female" id="f-alc" style="width:0%">-</div></div></div>
+        <div class="g-metric"><div class="g-metric-label">Marijuana use (past 30 days)</div><div class="g-bar-track"><div class="g-bar-fill female" id="f-mj" style="width:0%">-</div></div></div>
+        <div class="g-metric"><div class="g-metric-label">Depression (past year)</div><div class="g-bar-track"><div class="g-bar-fill female" id="f-dep" style="width:0%">-</div></div></div>
+        <div class="g-metric"><div class="g-metric-label">Cigarette use (past 30 days)</div><div class="g-bar-track"><div class="g-bar-fill female" id="f-cig" style="width:0%">-</div></div></div>
+        <div class="g-metric"><div class="g-metric-label">Nicotine vaping (past 30 days)</div><div class="g-bar-track"><div class="g-bar-fill female" id="f-vap" style="width:0%">-</div></div></div>
+        <div class="g-metric"><div class="g-metric-label">Sought mental health treatment</div><div class="g-bar-track"><div class="g-bar-fill female" id="f-mht" style="width:0%">-</div></div></div>
+      </div>
+    </div>
+    <div class="insight-box">"Women are 66% more likely to seek mental health treatment than men — yet men report depression at substantially lower rates, suggesting a large population of undiagnosed and untreated men."</div>
+    <div style="background:rgba(155,89,182,0.08);border-left:3px solid #9b59b6;padding:11px 14px;border-radius:0 8px 8px 0;margin-top:10px;font-size:12px;color:#bb8fce;line-height:1.6;">
+      <strong style="display:block;margin-bottom:3px;">What about cocaine, heroin, and fentanyl?</strong>
+      Cocaine, heroin, and fentanyl each account for less than 1% of reported use across both genders. While the gender difference in these substances is real, the rates are too small to display meaningfully alongside alcohol and marijuana on this chart. These substances are covered in Chapter 1, where the self-reporting caveat also explains why actual prevalence is likely higher than what this data captures.
+    </div>
+    <div class="info-box"><strong style="display:block;margin-bottom:3px;">Is this mental health treatment being sought because of substance use?</strong>The NSDUH does not directly establish causation between substance use and mental health treatment-seeking. However, SAMHSA research consistently finds that over 50% of individuals with a substance use disorder have a co-occurring mental health condition. The patterns observed here strongly suggest that for many respondents, mental health treatment may be directly related to — or precipitated by — their substance use.</div>
+    <div class="source">Source: NSDUH 2022–2023, SAMHSA · N=115,774 · Note: MH treatment data unavailable for 2021 and 2024</div>
+  </div>
+
+  <!-- PAGE 4: RACE -->
+  <div class="page" id="page-4">
+    <div class="chapter-eyebrow">Chapter 4 of 4</div>
+    <h2 class="chapter-title">Same Crisis. Different Access.</h2>
+    <p class="chapter-sub">Black and Hispanic Americans face substance use and mental health challenges at rates comparable to white Americans — yet receive treatment at significantly lower rates. This disparity is systemic, not personal.</p>
+    <div class="year-filter-bar">
+      <span class="year-filter-label">Filter by year:</span>
+      <button class="yr-btn active" onclick="setYear(4,'all',this)">All Years</button>
+      <button class="yr-btn" onclick="setYear(4,'2022',this)">2022</button>
+      <button class="yr-btn" onclick="setYear(4,'2023',this)">2023</button>
+    </div>
+    <div class="two-col">
+      <div class="chart-box">
+        <div class="chart-box-title">Substance Use Rate by Race (%)</div>
+        <div class="chart-wrap h240"><canvas id="raceUseChart"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-box-title">Mental Health Treatment Rate by Race (%)</div>
+        <div class="chart-wrap h240"><canvas id="raceTreatChart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-box-title">Nicotine Use by Race — Cigarettes vs Vaping (%)</div>
+      <div class="chart-wrap h240"><canvas id="raceNicChart"></canvas></div>
+    </div>
+    <div class="insight-box">"White Americans receive mental health treatment at nearly double the rate of Black Americans (32% vs 17.9%) — despite Black Americans living in communities disproportionately affected by the substance abuse crisis."</div>
+    <div class="source">Source: NSDUH 2022–2023, SAMHSA · N=115,774 · Note: Native American n=2,064; interpret with caution · MH treatment data unavailable for 2021 and 2024</div>
+  </div>
+
+  <!-- PAGE 5: DOES TREATMENT WORK -->
+  <div class="page" id="page-5">
+    <div class="chapter-eyebrow">Chapter 5 of 8</div>
+    <h2 class="chapter-title">Does Treatment Work? Less Than Half Complete It.</h2>
+    <p class="chapter-sub">Of the 4.2 million treatment episodes recorded between 2021 and 2023, only 37.5% resulted in successful completion. The substance someone is being treated for significantly affects their chances of finishing.</p>
+    <div class="year-filter-bar">
+      <span class="year-filter-label">Filter by year:</span>
+      <button class="yr-btn active" onclick="setYear(5,'all',this)">All Years</button>
+      <button class="yr-btn" onclick="setYear(5,'2021',this)">2021</button>
+      <button class="yr-btn" onclick="setYear(5,'2022',this)">2022</button>
+      <button class="yr-btn" onclick="setYear(5,'2023',this)">2023</button>
+    </div>
+    <div class="two-col">
+      <div class="chart-box">
+        <div class="chart-box-title">Overall Treatment Outcomes</div>
+        <div class="chart-wrap h260"><canvas id="ch5DonutChart"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-box-title">Completion Rate by Primary Substance (%)</div>
+        <div class="chart-wrap h260"><canvas id="ch5SubChart"></canvas></div>
+      </div>
+    </div>
+    <div class="insight-box">"Alcohol treatment has the highest completion rate at 49.7% while heroin treatment has the lowest at 26.1%. The substance matters — and so does the system supporting recovery."</div>
+    <div class="caveat-box"><strong style="display:block;margin-bottom:3px;">⚠ TEDS only tracks publicly funded facilities.</strong>Private pay rehabilitation centers are not included in this data, meaning wealthier patients are underrepresented. Actual completion rates across all treatment settings may differ.</div>
+    <div class="source">Source: TEDS-D 2021–2023, SAMHSA · N=4,219,911 treatment episodes</div>
+  </div>
+
+  <!-- PAGE 6: WHICH TREATMENT WORKS BEST -->
+  <div class="page" id="page-6">
+    <div class="chapter-eyebrow">Chapter 6 of 8</div>
+    <h2 class="chapter-title">Not All Treatment Is Created Equal.</h2>
+    <p class="chapter-sub">The type of treatment someone receives has a major impact on whether they complete it. Hospital-based detox programs have the highest completion rates while standard outpatient programs — the most common form of treatment — have among the lowest.</p>
+    <div class="year-filter-bar">
+      <span class="year-filter-label">Filter by year:</span>
+      <button class="yr-btn active" onclick="setYear(6,'all',this)">All Years</button>
+      <button class="yr-btn" onclick="setYear(6,'2021',this)">2021</button>
+      <button class="yr-btn" onclick="setYear(6,'2022',this)">2022</button>
+      <button class="yr-btn" onclick="setYear(6,'2023',this)">2023</button>
+    </div>
+    <div class="chart-box">
+      <div class="chart-box-title">Treatment Completion Rate by Type (%)</div>
+      <div class="chart-wrap h300"><canvas id="ch6Chart"></canvas></div>
+    </div>
+    <div class="insight-box">"Detox programs show completion rates of 73–77% while standard outpatient — the treatment most people receive — sits at only 28.1%. Access to the right type of treatment is not equal across income levels or communities."</div>
+    <div class="caveat-box"><strong style="display:block;margin-bottom:3px;">⚠ TEDS only tracks publicly funded facilities.</strong>Private pay rehabilitation centers are not included in this data, meaning wealthier patients are underrepresented. Actual completion rates across all treatment settings may differ.</div>
+    <div class="source">Source: TEDS-D 2021–2023, SAMHSA · N=4,219,911 treatment episodes</div>
+  </div>
+
+  <!-- PAGE 7: LIFE AFTER TREATMENT -->
+  <div class="page" id="page-7">
+    <div class="chapter-eyebrow">Chapter 7 of 8</div>
+    <h2 class="chapter-title">Treatment Works — When People Can Access It.</h2>
+    <p class="chapter-sub">Looking at employment and arrest rates before and after treatment shows that going through a program makes a measurable difference. People leave treatment more likely to be employed and less likely to be arrested.</p>
+    <div class="year-filter-bar">
+      <span class="year-filter-label">Filter by year:</span>
+      <button class="yr-btn active" onclick="setYear(7,'all',this)">All Years</button>
+      <button class="yr-btn" onclick="setYear(7,'2021',this)">2021</button>
+      <button class="yr-btn" onclick="setYear(7,'2022',this)">2022</button>
+      <button class="yr-btn" onclick="setYear(7,'2023',this)">2023</button>
+    </div>
+    <div class="two-col">
+      <div class="chart-box">
+        <div class="chart-box-title">Employment Rate — Admission vs Discharge (%)</div>
+        <div class="chart-wrap h260"><canvas id="ch7EmpChart"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-box-title">Arrest Rate — Admission vs Discharge (%)</div>
+        <div class="chart-wrap h260"><canvas id="ch7ArrChart"></canvas></div>
+      </div>
+    </div>
+    <div class="insight-box">"After treatment, employment rises from 25.7% to 28.7% and arrest rates drop from 6.4% to 4.9%. These gains are consistent across all substances — treatment works when people can get to it and complete it."</div>
+    <div class="caveat-box"><strong style="display:block;margin-bottom:3px;">⚠ TEDS only tracks publicly funded facilities.</strong>Private pay rehabilitation centers are not included in this data, meaning wealthier patients are underrepresented. Actual outcomes across all treatment settings may differ.</div>
+    <div class="source">Source: TEDS-D 2021–2023, SAMHSA · N=4,219,911 treatment episodes</div>
+  </div>
+
+  <!-- PAGE 8: THE TREATMENT GAP -->
+  <div class="page" id="page-8">
+    <div class="chapter-eyebrow">Chapter 8 of 8</div>
+    <h2 class="chapter-title">The Treatment Gap — Who Gets Left Behind.</h2>
+    <p class="chapter-sub">Even when people recognize they need help, millions never receive it. The barriers keeping people from treatment are not personal failures — they are systemic failures that policymakers have the power to fix.</p>
+    <div class="stat-cards">
+      <div class="stat-card red"><div class="stat-number">1,003</div><div class="stat-label">Respondents who needed treatment but didn't receive it</div></div>
+      <div class="stat-card"><div class="stat-number">33%</div><div class="stat-label">Said cost was the reason they didn't seek help</div></div>
+      <div class="stat-card gold2"><div class="stat-number">27%</div><div class="stat-label">Didn't know where to go for treatment</div></div>
+      <div class="stat-card teal"><div class="stat-number">22%</div><div class="stat-label">Were not ready to stop using</div></div>
+    </div>
+    <div class="two-col">
+      <div class="chart-box">
+        <div class="chart-box-title">Why People Didn't Seek Treatment</div>
+        <div class="chart-wrap h260"><canvas id="ch8DonutChart"></canvas></div>
+      </div>
+      <div class="chart-box" style="display:flex;flex-direction:column;justify-content:center;padding:32px;">
+        <div style="font-size:32px;font-weight:700;color:var(--red);margin-bottom:12px;line-height:1.2;">Cost is the #1 barrier to treatment.</div>
+        <div style="font-size:14px;color:var(--grey);line-height:1.7;margin-bottom:20px;">One in three people who needed treatment and didn't get it cited cost as the reason. This is not a personal decision — it is a policy failure. Expanding insurance coverage, funding community treatment centers, and removing financial barriers would directly reduce this number.</div>
+        <div style="font-size:13px;color:var(--gold);font-style:italic;border-left:3px solid var(--gold);padding-left:12px;">"The data is clear. The solutions exist. The only thing missing is the political will to act."</div>
+      </div>
+    </div>
+    <div class="source">Source: NSDUH 2022–2023, SAMHSA · Unmet treatment need respondents N=1,003 · Note: Only respondents who reported substance use and indicated unmet need are included</div>
+  </div>
+
+</div>
+
+<div class="bottom-nav">
+  <button class="nav-btn" id="prevBtn" onclick="prevPage()" disabled>← Previous</button>
+  <div style="text-align:center;">
+    <div class="nav-chapter-label" id="navLabel">Introduction</div>
+    <div class="nav-chapter-name" id="navName">The Hidden Crisis</div>
+  </div>
+  <button class="nav-btn primary" id="nextBtn" onclick="nextPage()">Next →</button>
+</div>
+
+<script>
+let current = 0;
+const total = 9;
+let chartsBuilt = {};
+let activeYear = { 1:'all', 2:'all', 3:'all', 4:'all', 5:'all', 6:'all', 7:'all' };
+
+const pageLabels = [
+  ['Introduction','The Hidden Crisis'],
+  ['Chapter 1 of 8','The Scale of the Crisis'],
+  ['Chapter 2 of 8','Young Adults Are the Eye of the Storm'],
+  ['Chapter 3 of 8','Men Use More. Women Ask for Help More.'],
+  ['Chapter 4 of 8','Same Crisis. Different Access.'],
+  ['Chapter 5 of 8','Does Treatment Work?'],
+  ['Chapter 6 of 8','Not All Treatment Is Created Equal'],
+  ['Chapter 7 of 8','Life After Treatment'],
+  ['Chapter 8 of 8','The Treatment Gap']
+];
+
+// ALL DATA BY YEAR
+const DATA = {
+  ch1: {
+    all:  { alc:44.1, mj:16.3, coc:0.7, her:0.2, dep:8.8, mht:13.5, cig:12.1, vape:12.3 },
+    2021: { alc:45.8, mj:14.6, coc:0.7, her:0.2, dep:8.8, mht:null, cig:12.8, vape:null },
+    2022: { alc:44.7, mj:16.5, coc:0.7, her:0.2, dep:8.9, mht:26.5, cig:12.2, vape:11.5 },
+    2023: { alc:43.4, mj:17.4, coc:0.7, her:0.2, dep:8.8, mht:27.6, cig:12.1, vape:12.8 },
+    2024: { alc:42.4, mj:17.0, coc:0.6, her:0.1, dep:8.5, mht:null, cig:11.5, vape:12.9 }
+  },
+  ch2: {
+    ages: ['12-13','14-15','16-17','18-20','21-23','24-25','26-29','30-34','35-49','50-64','65+'],
+    all:  { alc:[1.5,5.7,13.9,29.5,58.3,59.0,59.0,57.9,57.4,52.8,46.3], mj:[1.2,5.8,13.1,21.2,26.5,25.7,24.0,21.6,17.5,11.9,6.2], dep:[0,0,0,17.2,17.1,15.8,13.5,10.8,8.9,6.2,2.9], cig:[0.5,1.3,2.8,7.7,12.8,14.2,15.3,17.6,18.9,16.9,8.3], vape:[2.3,7.0,12.7,21.8,26.7,23.1,18.0,14.5,9.5,3.7,1.0] },
+    2021: { alc:[1.3,5.7,13.2,31.6,60.9,61.9,61.0,59.3,58.5,54.3,46.4], mj:[0.5,5.0,11.3,20.3,25.4,23.5,21.1,19.8,14.6,9.9,5.1], dep:[0,0,0,17.3,17.4,15.3,13.4,10.4,9.0,6.3,2.9], cig:[0.3,1.0,2.9,8.0,13.8,15.8,17.0,19.4,19.0,16.6,8.3], vape:null },
+    2022: { alc:[1.5,5.5,15.7,30.8,59.2,59.1,60.5,59.7,58.9,53.8,46.2], mj:[1.4,6.0,15.0,22.7,26.9,26.4,24.0,22.1,16.9,11.5,5.5], dep:[0,0,0,18.8,18.1,16.8,13.3,10.7,8.4,6.4,2.6], cig:[0.6,1.1,3.1,7.4,12.5,14.6,16.5,18.5,19.0,17.1,7.8], vape:[2.6,6.8,13.8,22.6,25.7,21.0,15.4,12.8,7.7,3.0,0.8] },
+    2023: { alc:[1.6,6.1,13.6,28.6,57.7,58.1,58.0,58.0,56.9,52.9,45.5], mj:[1.5,6.6,13.6,21.9,28.0,26.7,25.9,22.7,18.9,13.0,6.9], dep:[0,0,0,16.6,17.5,15.3,14.2,11.3,9.1,6.0,3.3], cig:[0.5,1.5,2.9,8.1,13.7,14.2,14.6,17.2,19.0,17.1,8.1], vape:[2.1,7.6,13.3,22.8,28.3,23.3,19.0,14.5,9.4,4.0,1.3] },
+    2024: { alc:[1.5,5.6,13.1,27.1,55.2,57.0,56.4,54.5,55.3,50.0,46.9], mj:[1.6,5.4,12.5,20.0,25.6,26.2,25.1,21.8,19.5,13.5,7.5], dep:[0,0,0,16.0,15.3,15.6,13.0,11.0,9.1,5.9,3.1], cig:[0.6,1.4,2.5,7.4,11.3,12.1,12.8,15.3,18.6,16.7,8.8], vape:[2.1,6.7,11.2,19.9,26.3,25.2,19.5,16.1,11.2,4.3,1.1] }
+  },
+  ch3: {
+    all:  { M:{alc:44.0,mj:18.2,dep:6.4,mht:19.9,cig:13.5,vap:12.6}, F:{alc:44.1,mj:15.9,dep:11.0,mht:33.1,cig:11.1,vap:11.7} },
+    2022: { M:{alc:44.5,mj:17.9,dep:6.4,mht:19.5,cig:13.4,vap:12.2}, F:{alc:44.9,mj:15.3,dep:11.0,mht:32.4,cig:11.2,vap:10.9} },
+    2023: { M:{alc:43.5,mj:18.4,dep:6.3,mht:20.2,cig:13.5,vap:13.0}, F:{alc:43.2,mj:16.5,dep:10.9,mht:33.8,cig:11.0,vap:12.5} }
+  },
+  ch4: {
+    races: ['White','Black','Hispanic','Asian','Native Am.','Multiracial'],
+    all:  { use:[50.5,35.8,36.2,33.2,29.2,39.9], treat:[32.0,17.9,20.4,15.4,27.3,32.8], cig:[13.2,12.9,9.1,5.5,21.5,14.4], vap:[13.0,9.4,11.0,6.2,18.4,16.8] },
+    2022: { use:[50.8,35.6,37.2,34.1,34.2,39.7], treat:[31.4,17.9,19.8,15.1,24.3,30.8], cig:[13.1,12.9,9.4,5.1,24.3,15.2], vap:[12.1,8.6,11.0,7.0,18.3,15.7] },
+    2023: { use:[50.2,36.1,35.2,32.1,25.6,40.0], treat:[32.7,17.9,20.9,15.7,29.4,34.6], cig:[13.3,13.0,8.8,5.9,19.4,13.7], vap:[13.9,10.3,11.0,5.3,18.5,17.7] }
+  }
+};
+
+let charts = {};
+
+function goTo(idx) {
+  const pages = document.querySelectorAll('.page');
+  const dots = document.querySelectorAll('.prog-dot');
+  pages[current].classList.remove('active');
+  pages[current].classList.add('exit-left');
+  setTimeout(() => pages[current].classList.remove('exit-left'), 450);
+  current = idx;
+  pages[current].classList.add('active');
+  dots.forEach((d,i) => { d.classList.toggle('active',i===current); d.classList.toggle('done',i<current); });
+  document.getElementById('prevBtn').disabled = current===0;
+  document.getElementById('nextBtn').disabled = current===total-1;
+  document.getElementById('nextBtn').textContent = current===total-1 ? 'End' : 'Next →';
+  document.getElementById('navLabel').textContent = pageLabels[current][0];
+  document.getElementById('navName').textContent = pageLabels[current][1];
+  document.getElementById('progLabel').textContent = current===0 ? 'Intro' : `${current} of 8`;
+  if(current > 0) setTimeout(() => buildOrUpdate(current), 150);
+}
+function nextPage(){ if(current<total-1) goTo(current+1); }
+function prevPage(){ if(current>0) goTo(current-1); }
+
+function setYear(ch, yr, btn) {
+  activeYear[ch] = yr;
+  btn.closest('.year-filter-bar').querySelectorAll('.yr-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildOrUpdate(ch);
+}
+
+function animateCounter(el, target, suffix='%') {
+  if(target===null){ el.textContent='N/A'; return; }
+  let start=0; const duration=900;
+  const step = ts => {
+    if(!start) start=ts;
+    const p=Math.min((ts-start)/duration,1);
+    const e=1-Math.pow(1-p,3);
+    el.textContent=(e*target).toFixed(1)+suffix;
+    if(p<1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+const CD = { plugins:{ legend:{labels:{color:'#a8b2c1',font:{size:11},usePointStyle:true}}, tooltip:{backgroundColor:'#1a2e45',titleColor:'#e9c46a',bodyColor:'#fff',borderColor:'#243b55',borderWidth:1,padding:10} }, scales:{ x:{ticks:{color:'#a8b2c1',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}, y:{ticks:{color:'#a8b2c1',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}} } };
+
+function buildOrUpdate(idx) {
+  if(idx===1) {
+    const d = DATA.ch1[activeYear[1]];
+    animateCounter(document.getElementById('cnt1'), d.alc);
+    animateCounter(document.getElementById('cnt2'), d.mj);
+    animateCounter(document.getElementById('cnt3'), d.dep);
+    animateCounter(document.getElementById('cnt4'), d.mht);
+    const vals = [d.alc, d.mj, d.cig, d.vape ?? d.vap ?? 0, 0.7, d.coc, d.her];
+    const labels = ['Alcohol','Marijuana','Cigarettes','Nicotine Vaping','Fentanyl','Cocaine','Heroin'];
+    const colors = ['#e9c46a','#2ec4b6','#f4a261','#e63946','#9b59b6','#3498db','#bb8fce'];
+    if(!charts[1]) {
+      charts[1] = new Chart(document.getElementById('scaleChart'), {
+        type:'bar',
+        data:{ labels, datasets:[{ label:'% Used', data:vals, backgroundColor:colors, borderRadius:6, borderSkipped:false }] },
+        options:{ ...CD, indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{...CD.plugins,legend:{display:false},tooltip:{...CD.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw !== null ? ctx.raw+'%' : 'N/A'}`}}}, scales:{ x:{...CD.scales.x,ticks:{...CD.scales.x.ticks,callback:v=>v+'%'}}, y:{...CD.scales.y} } }
+      });
+    } else {
+      charts[1].data.datasets[0].data = vals;
+      charts[1].update('active');
+    }
+  }
+
+  if(idx===2) {
+    const d = DATA.ch2[activeYear[2]];
+    const vapData = d.vape || Array(11).fill(null);
+    if(!charts[2]) {
+      charts[2] = new Chart(document.getElementById('ageChart'), {
+        type:'line',
+        data:{ labels:DATA.ch2.ages, datasets:[
+          {label:'Alcohol Use',data:d.alc,borderColor:'#e9c46a',backgroundColor:'rgba(233,196,106,0.06)',tension:0.4,borderWidth:2.5,pointRadius:4,pointHoverRadius:7},
+          {label:'Marijuana Use',data:d.mj,borderColor:'#2ec4b6',backgroundColor:'rgba(46,196,182,0.06)',tension:0.4,borderWidth:2.5,pointRadius:4,pointHoverRadius:7},
+          {label:'Cigarette Use',data:d.cig,borderColor:'#f4a261',backgroundColor:'rgba(244,162,97,0.06)',tension:0.4,borderWidth:2,pointRadius:4,pointHoverRadius:7},
+          {label:'Nicotine Vaping',data:vapData,borderColor:'#e63946',backgroundColor:'rgba(230,57,70,0.06)',tension:0.4,borderWidth:2,borderDash:[4,3],pointRadius:4,pointHoverRadius:7},
+          {label:'Depression',data:d.dep,borderColor:'#9b59b6',backgroundColor:'rgba(155,89,182,0.06)',tension:0.4,borderWidth:2,borderDash:[6,3],pointRadius:4,pointHoverRadius:7}
+        ]},
+        options:{...CD,responsive:true,maintainAspectRatio:false,plugins:{...CD.plugins,tooltip:{...CD.plugins.tooltip,callbacks:{label:ctx=>ctx.raw !== null ? ` ${ctx.dataset.label}: ${ctx.raw}%` : ` ${ctx.dataset.label}: N/A`}}},scales:{x:{...CD.scales.x},y:{...CD.scales.y,ticks:{...CD.scales.y.ticks,callback:v=>v+'%'},max:70}}}
+      });
+    } else {
+      charts[2].data.datasets[0].data=d.alc;
+      charts[2].data.datasets[1].data=d.mj;
+      charts[2].data.datasets[2].data=d.cig;
+      charts[2].data.datasets[3].data=vapData;
+      charts[2].data.datasets[4].data=d.dep;
+      charts[2].update('active');
+    }
+  }
+
+  if(idx===3) {
+    const d = DATA.ch3[activeYear[3]];
+    const bars = [
+      ['m-alc',d.M.alc,73],['m-mj',d.M.mj,30],['m-cig',d.M.cig,22],['m-vap',d.M.vap,21],['m-dep',d.M.dep,11],['m-mht',d.M.mht,33],
+      ['f-alc',d.F.alc,73],['f-mj',d.F.mj,26],['f-cig',d.F.cig,18],['f-vap',d.F.vap,19],['f-dep',d.F.dep,18],['f-mht',d.F.mht,55]
+    ];
+    bars.forEach(([id,val,_]) => {
+      const el = document.getElementById(id);
+      if(!el) return;
+      const pct = Math.min((val/70)*100,100);
+      setTimeout(() => { el.style.width=pct+'%'; el.textContent=val+'%'; }, 100);
+    });
+  }
+
+  if(idx===4) {
+    const d = DATA.ch4[activeYear[4]];
+    const colors = ['#e9c46a','#2ec4b6','#f4a261','#9b59b6','#e63946','#3498db'];
+    if(!charts['4a']) {
+      charts['4a'] = new Chart(document.getElementById('raceUseChart'), {
+        type:'bar', data:{labels:DATA.ch4.races,datasets:[{label:'Alcohol Use %',data:d.use,backgroundColor:colors,borderRadius:6,borderSkipped:false}]},
+        options:{...CD,responsive:true,maintainAspectRatio:false,plugins:{...CD.plugins,legend:{display:false},tooltip:{...CD.plugins.tooltip,callbacks:{label:ctx=>` Use rate: ${ctx.raw}%`}}},scales:{x:{...CD.scales.x},y:{...CD.scales.y,ticks:{...CD.scales.y.ticks,callback:v=>v+'%'},max:60}}}
+      });
+      charts['4b'] = new Chart(document.getElementById('raceTreatChart'), {
+        type:'bar', data:{labels:DATA.ch4.races,datasets:[{label:'Treatment %',data:d.treat,backgroundColor:colors,borderRadius:6,borderSkipped:false}]},
+        options:{...CD,responsive:true,maintainAspectRatio:false,plugins:{...CD.plugins,legend:{display:false},tooltip:{...CD.plugins.tooltip,callbacks:{label:ctx=>` Treatment rate: ${ctx.raw}%`}}},scales:{x:{...CD.scales.x},y:{...CD.scales.y,ticks:{...CD.scales.y.ticks,callback:v=>v+'%'},max:40}}}
+      });
+      charts['4c'] = new Chart(document.getElementById('raceNicChart'), {
+        type:'bar',
+        data:{labels:DATA.ch4.races,datasets:[
+          {label:'Cigarettes %',data:d.cig,backgroundColor:'rgba(233,196,106,0.8)',borderRadius:4,borderSkipped:false},
+          {label:'Nicotine Vaping %',data:d.vap,backgroundColor:'rgba(230,57,70,0.8)',borderRadius:4,borderSkipped:false}
+        ]},
+        options:{...CD,responsive:true,maintainAspectRatio:false,plugins:{...CD.plugins,tooltip:{...CD.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}%`}}},scales:{x:{...CD.scales.x},y:{...CD.scales.y,ticks:{...CD.scales.y.ticks,callback:v=>v+'%'},max:30}}}
+      });
+    } else {
+      charts['4a'].data.datasets[0].data=d.use; charts['4a'].update('active');
+      charts['4b'].data.datasets[0].data=d.treat; charts['4b'].update('active');
+      charts['4c'].data.datasets[0].data=d.cig; charts['4c'].data.datasets[1].data=d.vap; charts['4c'].update('active');
+    }
+  }
+
+  // CHAPTERS 5-8 inside buildOrUpdate
+  if(idx===5) {
+    const d = TEDS.ch5[activeYear[5]];
+    const sd = TEDS.ch5.subs;
+    const subData = sd[activeYear[5]] || sd.all;
+    if(!charts[5]) {
+      charts[5] = new Chart(document.getElementById('ch5DonutChart'), {
+        type:'doughnut',
+        data:{labels:['Completed','Dropped Out','Terminated','Transferred','Other'],datasets:[{data:[d.comp,d.drop,d.term,d.trans,d.other],backgroundColor:['#2ec4b6','#e63946','#f4a261','#9b59b6','#a8b2c1'],borderWidth:0,hoverOffset:8}]},
+        options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{color:'#a8b2c1',font:{size:11},padding:12}},tooltip:{backgroundColor:'#1a2e45',titleColor:'#e9c46a',bodyColor:'#fff',borderColor:'#243b55',borderWidth:1,padding:10,callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw}%`}}}}
+      });
+      charts['5b'] = new Chart(document.getElementById('ch5SubChart'), {
+        type:'bar',
+        data:{labels:sd.labels,datasets:[{label:'Completion Rate %',data:subData,backgroundColor:['#e9c46a','#9b59b6','#2ec4b6','#e63946','#f4a261','#3498db'],borderRadius:6,borderSkipped:false}]},
+        options:{...CD,indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{...CD.plugins,legend:{display:false},tooltip:{...CD.plugins.tooltip,callbacks:{label:ctx=>` Completion: ${ctx.raw}%`}}},scales:{x:{...CD.scales.x,ticks:{...CD.scales.x.ticks,callback:v=>v+'%'},max:60},y:{...CD.scales.y}}}
+      });
+    } else {
+      charts[5].data.datasets[0].data=[d.comp,d.drop,d.term,d.trans,d.other]; charts[5].update('active');
+      charts['5b'].data.datasets[0].data=subData; charts['5b'].update('active');
+    }
+  }
+
+  if(idx===6) {
+    const data = TEDS.ch6[activeYear[6]] || TEDS.ch6.all;
+    const colors6 = ['#e9c46a','#2ec4b6','#f4a261','#e63946','#9b59b6','#3498db','#a8b2c1','#58d68d'];
+    const treatDesc = {
+      'Detox-Hospital': 'Medical detoxification in a hospital setting. Patients are supervised 24/7 by medical staff while their body clears the substance. Best for severe withdrawal cases where medical complications are likely.',
+      'Detox-Residential': 'Detoxification in a non-hospital residential facility. Provides round-the-clock supervision in a home-like environment. Less intensive than hospital detox but still provides full-time support.',
+      'Inpatient Hospital': 'Full rehabilitation program inside a hospital. Patients live on-site and receive intensive therapy, medical care, and counseling. Typically used for the most severe cases with co-occurring medical or mental health conditions.',
+      'Short-term Res.': 'Residential rehabilitation lasting 30 days or less. Patients live at the facility and receive structured therapy and support. Designed to stabilize and transition patients toward outpatient care.',
+      'Long-term Res.': 'Residential rehabilitation lasting more than 30 days, often 90 days to 1 year. Provides deep behavioral therapy and life skills training for individuals needing extended support to rebuild stability.',
+      'Intensive Outpatient': 'Patients live at home but attend treatment sessions several times per week, typically 9+ hours per week. Offers structured therapy without requiring the patient to leave their home environment.',
+      'Outpatient': 'The most common form of treatment. Patients attend scheduled therapy or counseling sessions while living at home. Lower intensity makes it accessible but also linked to lower completion rates.',
+      'Ambulatory Detox': 'Medical detoxification where the patient is not admitted to a facility. They visit a clinic regularly while withdrawing at home. Requires a stable home environment and lower medical risk.'
+    };
+    if(!charts[6]) {
+      charts[6] = new Chart(document.getElementById('ch6Chart'), {
+        type:'bar',
+        data:{labels:TEDS.ch6.labels,datasets:[{label:'Completion Rate %',data:data,backgroundColor:colors6,borderRadius:6,borderSkipped:false}]},
+        options:{...CD,indexAxis:'y',responsive:true,maintainAspectRatio:false,
+          plugins:{...CD.plugins,legend:{display:false},
+            tooltip:{
+              ...CD.plugins.tooltip,
+              callbacks:{
+                title: ctx => ctx[0].label,
+                label: ctx => ` Completion rate: ${ctx.raw}%`,
+                afterLabel: ctx => {
+                  const desc = treatDesc[ctx.label] || '';
+                  const words = desc.split(' ');
+                  const lines = [];
+                  let line = '';
+                  words.forEach(w => {
+                    if((line + w).length > 55) { lines.push(' ' + line.trim()); line = ''; }
+                    line += w + ' ';
+                  });
+                  if(line.trim()) lines.push(' ' + line.trim());
+                  return ['', ...lines];
+                }
+              },
+              displayColors: false,
+              padding: 14,
+              bodyFont: { size: 11 },
+              titleFont: { size: 12, weight: 'bold' }
+            }
+          },
+          scales:{x:{...CD.scales.x,ticks:{...CD.scales.x.ticks,callback:v=>v+'%'},max:90},y:{...CD.scales.y}}}
+      });
+    } else {
+      charts[6].data.datasets[0].data=data; charts[6].update('active');
+    }
+  }
+
+  if(idx===7) {
+    const d = TEDS.ch7[activeYear[7]];
+    if(!charts[7]) {
+      charts[7] = new Chart(document.getElementById('ch7EmpChart'), {
+        type:'bar',
+        data:{labels:['At Admission','At Discharge'],datasets:[{label:'Employment Rate %',data:[d.emp_a,d.emp_d],backgroundColor:['#e63946','#2ec4b6'],borderRadius:8,borderSkipped:false,barThickness:60}]},
+        options:{...CD,responsive:true,maintainAspectRatio:false,plugins:{...CD.plugins,legend:{display:false},tooltip:{...CD.plugins.tooltip,callbacks:{label:ctx=>` Employment: ${ctx.raw}%`}}},scales:{x:{...CD.scales.x},y:{...CD.scales.y,ticks:{...CD.scales.y.ticks,callback:v=>v+'%'},max:40}}}
+      });
+      charts['7b'] = new Chart(document.getElementById('ch7ArrChart'), {
+        type:'bar',
+        data:{labels:['At Admission','At Discharge'],datasets:[{label:'Arrest Rate %',data:[d.arr_a,d.arr_d],backgroundColor:['#e63946','#2ec4b6'],borderRadius:8,borderSkipped:false,barThickness:60}]},
+        options:{...CD,responsive:true,maintainAspectRatio:false,plugins:{...CD.plugins,legend:{display:false},tooltip:{...CD.plugins.tooltip,callbacks:{label:ctx=>` Arrest rate: ${ctx.raw}%`}}},scales:{x:{...CD.scales.x},y:{...CD.scales.y,ticks:{...CD.scales.y.ticks,callback:v=>v+'%'},max:10}}}
+      });
+    } else {
+      charts[7].data.datasets[0].data=[d.emp_a,d.emp_d]; charts[7].update('active');
+      charts['7b'].data.datasets[0].data=[d.arr_a,d.arr_d]; charts['7b'].update('active');
+    }
+  }
+
+  if(idx===8) {
+    if(!charts[8]) {
+      charts[8] = new Chart(document.getElementById('ch8DonutChart'), {
+        type:'doughnut',
+        data:{labels:['Cost too much','Didn\'t know where to go','Not ready to stop','Didn\'t think it would help','Other reason'],datasets:[{data:[33,27,22,10,8],backgroundColor:['#e63946','#f4a261','#e9c46a','#9b59b6','#a8b2c1'],borderWidth:0,hoverOffset:8}]},
+        options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{color:'#a8b2c1',font:{size:11},padding:10}},tooltip:{backgroundColor:'#1a2e45',titleColor:'#e9c46a',bodyColor:'#fff',borderColor:'#243b55',borderWidth:1,padding:10,callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw}%`}}}}
+      });
+    }
+  }
+}
+
+function toggleLine(btn, lineIdx) {
+  if(!charts[2]) return;
+  const meta = charts[2].getDatasetMeta(lineIdx);
+  meta.hidden = !meta.hidden;
+  btn.style.opacity = meta.hidden ? '0.35' : '1';
+  charts[2].update();
+}
+
+// TEDS DATA
+const TEDS = {
+  ch5: {
+    all:  { comp:37.5, drop:26.1, term:5.0, trans:25.4, other:6.1 },
+    2021: { comp:36.6, drop:27.5, term:5.2, trans:24.4, other:6.3 },
+    2022: { comp:37.8, drop:27.1, term:5.2, trans:23.8, other:6.2 },
+    2023: { comp:37.9, drop:23.9, term:4.5, trans:27.8, other:5.9 },
+    subs: {
+      labels: ['Alcohol','Cocaine','Marijuana','Heroin','Other Opiates','Meth'],
+      all:  [49.7,33.7,34.6,26.1,23.7,32.3],
+      2021: [49.1,32.8,33.9,25.4,22.9,31.7],
+      2022: [50.1,34.2,35.0,26.4,24.1,32.5],
+      2023: [50.0,34.2,34.9,26.5,24.2,32.8]
+    }
+  },
+  ch6: {
+    labels: ['Detox-Hospital','Detox-Residential','Inpatient Hospital','Short-term Res.','Long-term Res.','Intensive Outpatient','Outpatient','Ambulatory Detox'],
+    all:  [76.9,58.7,45.2,53.0,42.0,24.5,28.1,73.4],
+    2021: [76.2,58.5,39.9,53.6,40.9,23.8,26.8,69.1],
+    2022: [76.9,60.0,40.3,52.8,43.1,24.4,27.4,76.5],
+    2023: [77.7,57.4,56.0,52.7,42.1,25.2,29.6,74.0]
+  },
+  ch7: {
+    all:  { emp_a:25.7, emp_d:28.7, arr_a:6.4, arr_d:4.9 },
+    2021: { emp_a:24.7, emp_d:28.0, arr_a:6.1, arr_d:4.9 },
+    2022: { emp_a:26.8, emp_d:29.9, arr_a:6.3, arr_d:5.0 },
+    2023: { emp_a:25.7, emp_d:28.2, arr_a:6.8, arr_d:4.9 },
+    subs: {
+      labels: ['Alcohol','Cocaine','Marijuana','Heroin','Other Opiates','Meth'],
+      emp_a: [32.1,18.8,33.1,17.8,24.0,20.8],
+      emp_d: [35.2,21.8,36.5,21.0,25.7,24.2],
+      arr_a: [5.9,4.9,6.5,5.2,5.1,9.5],
+      arr_d: [4.2,3.6,5.2,4.0,3.9,7.6]
+    }
+  }
+};
+
+function buildTEDS(idx) { buildOrUpdate(idx); }
+
+document.addEventListener('keydown', e => {
+  if(e.key==='ArrowRight') nextPage();
+  if(e.key==='ArrowLeft') prevPage();
+});
+</script>
+</body>
+</html>
