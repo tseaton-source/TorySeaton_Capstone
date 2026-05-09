@@ -1,0 +1,8 @@
+# The Hidden Crisis - Data Cleaning Dependencies
+# Tory Seaton | FA 550 Capstone
+#
+# Install all dependencies with:
+# pip install -r requirements.txt
+
+pandas==2.2.0
+pyreadstat==1.2.6
