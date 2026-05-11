@@ -6,11 +6,11 @@ The Hidden Crisis: How Substance Use and Mental Health Collide in America
 
 PROJECT ACCESS:
 Deployed URL: https://tseaton-source.github.io/TorySeaton_Capstone
-OR: Open project/index.html in any web browser (Chrome recommended)
+
 
 DOCUMENTATION:
-Complete project documentation: Project_Documentation.pdf
-Presentation video: [ADD YOUR VIDEO LINK HERE]
+Complete project documentation: (see file labeled Project_Documentation.pdf) 
+Presentation video: (see file labeled Presentation_Video.mp4)
 
 SUPPORTING MATERIALS:
 - Data files: /data/ folder (see data_README.txt)
@@ -20,14 +20,10 @@ SUPPORTING MATERIALS:
 
 QUICK START:
 1. Read Project_Documentation.pdf for full context
-2. Watch Presentation Video [ADD LINK]
+2. Watch Presentation Video (see file labeled Presentation_Video.mp4)
 3. Access project at https://tseaton-source.github.io/TorySeaton_Capstone 
 
-PROJECT DESCRIPTION:
-This is an interactive 8-chapter data dashboard exploring how substance abuse
-and mental health intersect across age, gender, and race in America. Built using
-HTML, CSS, JavaScript, and Chart.js, with data from SAMHSA's NSDUH and TEDS-D
-datasets covering over 4.4 million records from 2021-2023.
+
 
 CONTACT:
 tseaton@stevens.edu
