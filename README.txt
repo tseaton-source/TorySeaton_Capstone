@@ -15,7 +15,7 @@ Presentation video: (see file labeled Presentation_Video.mp4)
 SUPPORTING MATERIALS:
 - Data files: /data/ folder (see data_README.txt)
 - Code: /code/ folder (see data_cleaning.py and requirements.txt)
-- AI conversation logs: /ai_logs/ folder
+- AI conversation logs: /ai_logs/
 - User guide: user_guide.pdf
 
 QUICK START:
