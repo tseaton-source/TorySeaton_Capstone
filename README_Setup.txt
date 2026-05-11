@@ -14,15 +14,9 @@ OPTION 2 - Run Locally:
 2. Open index.html in any web browser (Chrome recommended)
 3. That's it. The dashboard loads instantly.
 
-NOTES:
-- No server required
-- No installation required
-- No internet connection required (except for initial Chart.js CDN load)
-- All data is pre-loaded inside the HTML file
-- Estimated load time: under 3 seconds
 
 BROWSERS TESTED:
 - Google Chrome (recommended)
-- Mozilla Firefox
+- Firefox
 - Safari
 =======================================================
